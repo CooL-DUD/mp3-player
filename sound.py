@@ -8,22 +8,46 @@ import tkinter.ttk as ttk
 root = Tk()
 root.title("Jonybek's mp3")
 root.iconbitmap('')
-root.geometry("500x400")
+root.geometry("600x450")
 
 pygame.mixer.init()
 
 
 def play_time():
-    current_time = pygame.mixer.music.get_pos() / 1000
-    current_time = time.strftime('%H:%M:%S', time.gmtime(current_time))
+    if isStopped:
+        return
+    unf_current_time = pygame.mixer.music.get_pos() / 1000
+    current_time = time.strftime('%H:%M:%S', time.gmtime(unf_current_time))
+
+    # slider_label.config(text=f'Slider: {int(slider.get())} and Song Pos: {int(unf_current_time)}')
 
     current_song = playlist.curselection()
     song = playlist.get(current_song)
     song = 'C:/OpenServer/domains/localhost/mp3_player/music/' + song + ".mp3"
     song_mut = MP3(song)
-    song_length = time.strftime('%H:%M:%S', time.gmtime(song_mut.info.length))
 
-    status_bar.config(text="Time Elapsed: " + current_time + " of " + song_length)
+    global unf_song_length
+
+    unf_song_length = song_mut.info.length
+    song_length = time.strftime('%H:%M:%S', time.gmtime(unf_song_length))
+
+    if int(slider.get()) == int(unf_song_length):
+        status_bar.config(text="Time Elapsed: " + song_length + " of " + song_length)
+        pass
+    elif isPaused:
+        pass
+    elif int(slider.get()) == int(unf_current_time) + 1:
+        slider_pos = int(unf_song_length)
+        slider.config(to=slider_pos, value=int(unf_current_time) + 1)
+    else:
+        slider_pos = int(unf_song_length)
+        slider.config(to=slider_pos, value=int(slider.get()))
+
+        current_time = time.strftime('%H:%M:%S', time.gmtime(slider.get()))
+        status_bar.config(text="Time Elapsed: " + current_time + " of " + song_length)
+        next_time = int(slider.get()) + 1
+        slider.config(value=next_time)
+    # slider.config(value=int(unf_current_time))
 
     status_bar.after(1000, play_time)
 
@@ -39,17 +63,32 @@ def add_song():
 
 
 def play():
+    stop()
+    global isPaused
+    isPaused = False
+    global isStopped
+    isStopped = False
     song = playlist.get(ACTIVE)
     song = 'C:/OpenServer/domains/localhost/mp3_player/music/' + song + ".mp3"
     pygame.mixer.music.load(song)
     pygame.mixer.music.play(loops=0)
-
     play_time()
+
+    # slider_pos = int(unf_song_length)
+    # slider.config(to=slider_pos, value=0)
+
+
+global isStopped
+isStopped = False
 
 
 def stop():
-    pygame.mixer.music.stop()
     status_bar.config(text='')
+    slider.config(value=0)
+
+    pygame.mixer.music.stop()
+    global isStopped
+    isStopped = True
 
 
 global isPaused
@@ -69,6 +108,11 @@ def pause(state):
 
 
 def forward():
+    global isPaused
+    isPaused = False
+    status_bar.config(text='')
+    slider.config(value=0)
+
     next_song = playlist.curselection()
     next_song = next_song[0] + 1
     if playlist.size() <= next_song:
@@ -83,6 +127,11 @@ def forward():
 
 
 def rewind():
+    global isPaused
+    isPaused = False
+    status_bar.config(text='')
+    slider.config(value=0)
+
     prev_song = playlist.curselection()
     prev_song = prev_song[0]
     if 0 >= prev_song:
@@ -98,16 +147,21 @@ def rewind():
 
 def delete_song():
     playlist.delete(ANCHOR)
-    pygame.mixer.music.stop()
+    stop()
 
 
 def delete_all_songs():
     playlist.delete(0, END)
-    pygame.mixer.music.stop()
+    stop()
 
 
 def slide(x):
-    pass
+    # slider_label.config(text=f'{int(slider.get())} of {int(unf_song_length)}')
+    song = playlist.get(ACTIVE)
+    song = 'C:/OpenServer/domains/localhost/mp3_player/music/' + song + ".mp3"
+
+    pygame.mixer.music.load(song)
+    pygame.mixer.music.play(loops=0, start=int(slider.get()))
 
 
 playlist = Listbox(root, bg="grey", fg="white", width=60, selectbackground="white", selectforeground="grey")
@@ -151,5 +205,8 @@ status_bar.pack(fill=X, side=BOTTOM, ipady=2)
 
 slider = ttk.Scale(root, from_=0, to=100, orient=HORIZONTAL, value=0, length=300, command=slide)
 slider.pack(pady=30)
+
+# slider_label = Label(root, text="0")
+# slider_label.pack(pady=10)
 
 root.mainloop()
